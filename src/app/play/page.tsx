@@ -560,8 +560,8 @@ function PlayPageClient() {
     const lines = m3u8Content.split('\n');
     const filteredLines = [];
 
-    var firstTs = ""
-    var lastLine = ""
+    let firstTs = ""
+    let lastLine = ""
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
