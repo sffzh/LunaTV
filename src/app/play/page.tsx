@@ -591,6 +591,7 @@ function PlayPageClient() {
         }
       } else {
         firstTs = line
+        filteredLines.push(line)
       }
       lastLine = line
     }
