@@ -495,26 +495,27 @@ function PlayPageClient() {
 
   //几种常见的ts文件列表规律。每一个ts文件名与第一行作比较，
   // 若存在某一行不符合任何一条规律，则认为它是一条广告切片。
+  // 规律函数有顺序，越靠前的误判率越低，越靠后的误判率越高。
   const ad_checkers = [
-    //第一种格式： 文件名以相同的5位字符开头，且文件名字符长度相同，末位部分不同。
+    //*：每行只有一个文件名且文件名为纯数字（或者除首位字符外为纯数字）。
     function (first_ts: string, lastLine: string, line: string) {
-      const first_file = first_ts.substring(first_ts.lastIndexOf('/') + 1)
-      const file = line.substring(line.lastIndexOf('/') + 1)
-      return file.startsWith(first_file.substring(0, 5)) && file.length == first_ts.length
+      return line.lastIndexOf('/') <= 0 && !isNaN(Number(line.substring(1, line.lastIndexOf('.'))));
     },
-    //第二种：判断整行内容前10个字符重合,不要求全名的字符长度相同。
-    function (first_ts: string, lastLine: string, line: string) {
-      return line.indexOf("/", 1) >= 1 && line.startsWith(first_ts.substring(0, 10));
-    },
-    //第三种：判断整行内容，除了uri最后一段（用/分隔的最后一段）之外前面的均重合：
+    //*：判断整行内容，除了uri最后一段（用/分隔的最后一段）之外前面的均重合：
     function (first_ts: string, lastLine: string, line: string) {
       const first_file_index = first_ts.lastIndexOf('/')
       const line_index = line.lastIndexOf('/')
       return first_file_index == line_index && line.startsWith(first_ts.substring(0, first_file_index));
     },
-    // 第四种：每行只有一个文件名且文件名为纯数字（或者除首位字符外为纯数字）。
+    //*： 文件名以相同的5位字符开头，且文件名字符长度相同，末位部分不同。
     function (first_ts: string, lastLine: string, line: string) {
-      return line.lastIndexOf('/') <= 0 && !isNaN(Number(line.substring(1, line.lastIndexOf('.'))));
+      const first_file = first_ts.substring(first_ts.lastIndexOf('/') + 1)
+      const file = line.substring(line.lastIndexOf('/') + 1)
+      return file.startsWith(first_file.substring(0, 5)) && file.length == first_ts.length
+    },
+    //*：判断整行内容前10个字符重合,不要求全名的字符长度相同。
+    function (first_ts: string, lastLine: string, line: string) {
+      return line.indexOf("/", 1) >= 1 && line.startsWith(first_ts.substring(0, 10));
     },
     //第五种：两个"#EXT-X-DISCONTINUITY"标签之前的所有切片都过滤掉
     // 这种方法有较大风险，因为不能保证原视频流中不会出现"#EXT-X-DISCONTINUITY"标签，
