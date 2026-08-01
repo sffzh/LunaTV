@@ -570,6 +570,7 @@ function PlayPageClient() {
         continue
       }
       if (line.startsWith('#')) {
+        filteredLines.push(line)
         continue
       }
       if (firstTs) {
