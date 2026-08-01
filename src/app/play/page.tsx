@@ -516,6 +516,11 @@ function PlayPageClient() {
     function (first_ts: string, lastLine: string, line: string) {
       return line.lastIndexOf('/') <= 0 && !isNaN(Number(line.substring(1, line.lastIndexOf('.'))));
     },
+    //第五种：两个"#EXT-X-DISCONTINUITY"标签之前的所有切片都过滤掉
+    // 这种方法有较大风险，因为不能保证原视频流中不会出现"#EXT-X-DISCONTINUITY"标签，
+    // 若原视频流中出现了该标签，则会误判为广告切片。 
+    // 目前先禁用。
+    // function (first_ts: string, lastLine: string, line: string) { return lastLine === "#EXT-X-DISCONTINUITY" }
   ]
   const ad_check_count = [0, 0, 0, 0]
 
@@ -526,7 +531,7 @@ function PlayPageClient() {
   // 目前只要有一项规律函数通过检测，就不再使用其他规律进行验证。
   function testAdMatch(firstTs: string, lastLine: string, line: string) {
     const threshold = 5
-    const use_func = []
+    const use_func: number[] = []
     for (let i = 0; i < ad_checkers.length; i++) {
       if (ad_checkers[i](firstTs, lastLine, line)) {
         ad_check_count[i]++;
@@ -538,14 +543,15 @@ function PlayPageClient() {
           ad_check_count[i]++;
 
           if (ad_check_count[i] >= threshold) {
-            use_func.push(ad_checkers[i])
+            use_func.push(i)
           }
         }
       }
       return true
     } else {
       for (let i = 0; i < use_func.length; i++) {
-        if (ad_checkers[i](firstTs, lastLine, line)) {
+        if (ad_checkers[use_func[i]](firstTs, lastLine, line)) {
+          ad_check_count[use_func[i]]++;
           return true
         }
       }
@@ -565,8 +571,14 @@ function PlayPageClient() {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
 
-      // 只过滤#EXT-X-DISCONTINUITY标识
+      // 过滤#EXT-X-DISCONTINUITY标识
       if (line.includes('#EXT-X-DISCONTINUITY')) {
+        if (firstTs) continue
+        if (lastLine === "#EXT-X-DISCONTINUITY") {
+          lastLine = ""
+        } else {
+          lastLine = "#EXT-X-DISCONTINUITY"
+        }
         continue
       }
       if (line.startsWith('#')) {
